@@ -154,10 +154,39 @@ def process(csv_path):
     sla_ok_count = int(df["sla_ok7"].sum())
     total = len(df)
 
+    # งานยื่นขอขนาน ทุกสถานะ — แกนเดือน/ปีต่างกันตามกลุ่ม:
+    #   - เชื่อมต่อเรียบร้อยแล้ว (C_done): ใช้ "วันที่อนุมัติเชื่อมต่อ" (จบงานจริง)
+    #   - ทุกสถานะอื่น (A, B, C_cancel): ใช้ "วันที่ยื่นคำขอ" (ยังไม่จบ หรือไม่มีวันจบงานเก็บไว้)
+    GROUP_MAP = {
+        "รอตรวจสอบคำขอ":"A","รอผู้ยื่นคำขอส่งเอกสารแก้ไข":"A","รอตรวจสอบระบบผลิต":"A",
+        "รออนุมัติเชื่อมต่อ/รับพิจารณา":"A","รออนุมัติเชื่อมต่อ (200 kW ขึ้นไป)":"A","รอชำระเงิน":"A",
+        "รอดำเนินการหลังอนุมัติเชื่อมต่อ / รับพิจารณา":"B","รอแก้ไขเอกสารหลังอนุมัติเชื่อมต่อ / รับพิจารณา":"B",
+        "รอทดสอบเชื่อมต่อ":"B","รออนุมัติแจ้งวันเริ่มเชื่อมต่อ":"B",
+        "เชื่อมต่อเรียบร้อยแล้ว":"C_done","ยกเลิก":"C_cancel"
+    }
+    df["pgrp"] = df["สถานะคำขอ"].map(GROUP_MAP)
+
+    df["month_approve"] = df["วันที่อนุมัติเชื่อมต่อ"].dt.to_period("M").astype(str)
+    df["year_approve"]  = df["วันที่อนุมัติเชื่อมต่อ"].dt.year.astype("Int64")
+
+    is_done = df["pgrp"] == "C_done"
+    df["axis_m"] = df["month_approve"].where(is_done, df["month"])
+    df["axis_y"] = df["year_approve"].where(is_done, df["year"])
+
+    rows_started = []
+    for (j, ay, am, st, grp, sy), g in df.groupby(["joint","axis_y","axis_m","สถานะคำขอ","pgrp","year"], dropna=False):
+        rows_started.append({
+            "j": str(j), "ys": int(ay) if pd.notna(ay) else 0, "m": str(am),
+            "st": str(st), "grp": str(grp), "n": len(g),
+            "yss": int(sy) if pd.notna(sy) else 0
+        })
+
     print(f"✅ rows={len(rows)}, records={total}, SLA เกิน 7 วัน={len(sla_ov_list)}, SLA ใน={sla_ok_count}")
+    print(f"✅ งานยื่นขอ (ทุกสถานะ): {sum(r['n'] for r in rows_started)} ราย")
     return {
         "rows": rows, "details": details, "kpi_summary": kpi_summary,
         "sla_ov_list": sla_ov_list, "sla_ok_count": sla_ok_count,
+        "rows_started": rows_started,
         "file_date": file_date, "csv_name": csv_path.name, "today": today, "total": total
     }
 
@@ -185,6 +214,7 @@ def build_html(data):
     rows_js        = json.dumps(data["rows"],        ensure_ascii=False, separators=(",",":"))
     details_js     = json.dumps(data["details"],     ensure_ascii=False, separators=(",",":"))
     kpi_summary_js = json.dumps(data["kpi_summary"],  ensure_ascii=False, separators=(",",":"))
+    rows_started_js = json.dumps(data["rows_started"], ensure_ascii=False, separators=(",",":"))
 
     sla_rows  = build_sla_rows(data["sla_ov_list"])
     sla_badge = (f'<span class="sla-badge">เกิน SLA (7วัน) {len(data["sla_ov_list"])} ราย!</span>'
@@ -197,6 +227,7 @@ def build_html(data):
         .replace("%%ROWS%%",        rows_js)
         .replace("%%DETAILS%%",     details_js)
         .replace("%%KPI_SUMMARY%%", kpi_summary_js)
+        .replace("%%ROWS_STARTED%%", rows_started_js)
         .replace("%%TOTAL%%",       str(data["total"]))
         .replace("%%FILE_DATE%%",   data["file_date"])
         .replace("%%CSV_NAME%%",    data["csv_name"])
