@@ -255,7 +255,7 @@ const MBY={2024:MONTHS_ALL.filter(m=>m.startsWith("2024")),2025:MONTHS_ALL.filte
 let curY=0,detPage=1,chartInst=null,kpiChartInst=null;const PG=50;
 
 const TIER_CHIP={green:"sla-chip-green",red1:"sla-chip-red1",red2:"sla-chip-red2",red3:"sla-chip-red3",red4:"sla-chip-red4"};
-const TIER_LABEL={green:"🟢 ปกติ KPI=5",red1:"🟡 เกิน7-15วัน",red2:"🟠 เกิน16-21วัน",red3:"🟠 เกิน22-28วัน",red4:"🔴 เกิน28วัน+"};
+const TIER_LABEL={green:"🟢 ปกติ KPI=5",red1:"🟡 8-15วัน",red2:"🟠 เกิน16-21วัน",red3:"🟠 เกิน22-28วัน",red4:"🔴 เกิน28วัน+"};
 
 function kpiColor(v){
   if(v>=4.5) return "#2ECC71";
@@ -286,8 +286,8 @@ function renderKPIChart(){
         return [`ค่าเฉลี่ย KPI: ${k.avg_kpi}`,`จำนวนงาน: ${k.n} รายการ`,`เกิน SLA: ${k.ov_count} ราย`,`วันสูงสุด: ${k.max_days} วัน`];
       }}}},
       scales:{
-        x:{ticks:{autoSkip:false,maxRotation:45,font:{size:9},color:"#2C3E50"}},
-        y:{min:0,max:5,ticks:{stepSize:1,color:"#2C3E50"},grid:{color:"rgba(26,111,168,.1)"}}
+        x:{ticks:{autoSkip:false,maxRotation:45,font:{size:11},color:"#2C3E50"}},
+        y:{min:0,max:5,ticks:{stepSize:1,color:"#2C3E50",font:{size:11}},grid:{color:"rgba(26,111,168,.1)"}}
       }
     }
   });
@@ -390,7 +390,7 @@ function renderChart(){
   if(chartInst){chartInst.destroy();chartInst=null;}
   const visS=(selSt==="all"?STATUSES:[selSt]).filter(s=>fd.some(r=>r.s===s));
   const datasets=visS.map(s=>{const idx=STATUSES.indexOf(s);return{label:ST_SHORT[idx],data:JOINTS.map(j=>fd.filter(r=>r.j===j&&r.s===s).reduce((a,r)=>a+r.n,0)),backgroundColor:ST_COLOR[idx]+"BB",stack:"s"};});
-  chartInst=new Chart(document.getElementById("chart-joint"),{type:"bar",data:{labels:JOINTS,datasets},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{mode:"index",intersect:false}},scales:{x:{stacked:true,ticks:{autoSkip:false,maxRotation:45,font:{size:9},color:"#2C3E50"}},y:{stacked:true,beginAtZero:true,ticks:{color:"#2C3E50"},grid:{color:"rgba(26,111,168,.1)"}}}}});
+  chartInst=new Chart(document.getElementById("chart-joint"),{type:"bar",data:{labels:JOINTS,datasets},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{mode:"index",intersect:false}},scales:{x:{stacked:true,ticks:{autoSkip:false,maxRotation:45,font:{size:11},color:"#2C3E50"}},y:{stacked:true,beginAtZero:true,ticks:{color:"#2C3E50",font:{size:11}},grid:{color:"rgba(26,111,168,.1)"}}}}});
   document.getElementById("chart-legend").innerHTML=visS.map(s=>{const idx=STATUSES.indexOf(s);return`<div class="legend-item"><div class="legend-dot" style="background:${ST_COLOR[idx]}"></div>${ST_SHORT[idx]}</div>`;}).join("");
 }
 
@@ -631,8 +631,8 @@ function render2024Started(){
       responsive:true,maintainAspectRatio:false,
       plugins:{legend:{display:false},tooltip:{mode:"index",intersect:false}},
       scales:{
-        x:{stacked:true,ticks:{autoSkip:false,maxRotation:45,font:{size:9},color:"#2C3E50"}},
-        y:{stacked:true,beginAtZero:true,ticks:{color:"#2C3E50"},grid:{color:"rgba(26,111,168,.1)"}}
+        x:{stacked:true,ticks:{autoSkip:false,maxRotation:45,font:{size:11},color:"#2C3E50"}},
+        y:{stacked:true,beginAtZero:true,ticks:{color:"#2C3E50",font:{size:11}},grid:{color:"rgba(26,111,168,.1)"}}
       }
     }
   });
