@@ -902,10 +902,10 @@ function renderMap(){
   pendLayer.addTo(mapInst);  // เปิดชั้น "ยังไม่เชื่อม" เป็นค่าเริ่มต้น
   doneLayer.addTo(mapInst);
 
-  L.control.layers(null,{
-    "🟢 เชื่อมต่อแล้ว ("+nDone+")": doneLayer,
-    "⏳ ยังไม่เชื่อม ("+nPend+")": pendLayer
-  },{collapsed:false}).addTo(mapInst);
+  const layerControl={};
+  layerControl["🟢 เชื่อมต่อแล้ว ("+nDone+")"]=doneLayer;
+  layerControl["⏳ ยังไม่เชื่อม ("+nPend+")"]=pendLayer;
+  L.control.layers(null,layerControl,{collapsed:false}).addTo(mapInst);
 
   // Legend รายสถานะย่อย
   const usedStatuses=[...new Set(MAP_DATA.filter(p=>!p.done).map(p=>p.st))];
