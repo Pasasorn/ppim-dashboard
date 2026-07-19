@@ -61,8 +61,9 @@ TIER_LABEL = {
 }
 
 def find_latest_csv(data_folder="data"):
+    # เรียงตามชื่อไฟล์ (ppim_report_YYYYMMDD.csv) เพราะ mtime บน GitHub Actions ไม่น่าเชื่อถือ
     files = sorted(Path(data_folder).glob("ppim_report_*.csv"),
-                    key=lambda x: x.stat().st_mtime, reverse=True)
+                    key=lambda x: x.name, reverse=True)
     return files[0] if files else None
 
 def sla_tier(days):
@@ -228,19 +229,22 @@ def process(csv_path):
     mw_done_total    = round(float(df[df["สถานะคำขอ"]=="เชื่อมต่อเรียบร้อยแล้ว"]["kw_num"].sum() / 1000), 2)
     mw_pending_total = round(float(df[~df["สถานะคำขอ"].isin(["เชื่อมต่อเรียบร้อยแล้ว","ยกเลิก"])]["kw_num"].sum() / 1000), 2)
 
-    # Map: lat/lon งานที่ยังค้าง (กรองเฉพาะภาคเหนือ)
+    # Map: lat/lon งานที่เชื่อมต่อแล้ว + ยังไม่เชื่อม (กรองเฉพาะภาคเหนือ ไม่รวมยกเลิก)
     df["lat_n"] = pd.to_numeric(df["ละติจูด"], errors="coerce")
     df["lon_n"] = pd.to_numeric(df["ลองจิจูด"], errors="coerce")
-    pending_map = df[~df["สถานะคำขอ"].isin(["เชื่อมต่อเรียบร้อยแล้ว","ยกเลิก"])].copy()
-    pending_map = pending_map[(pending_map["lat_n"].between(17,21)) & (pending_map["lon_n"].between(97,106))]
+    map_src = df[df["สถานะคำขอ"] != "ยกเลิก"].copy()
+    map_src = map_src[(map_src["lat_n"].between(17,21)) & (map_src["lon_n"].between(97,106))]
     map_data = []
-    for _, r in pending_map.iterrows():
+    for _, r in map_src.iterrows():
+        is_done = r["สถานะคำขอ"] == "เชื่อมต่อเรียบร้อยแล้ว"
         d = {"id":str(r["เลขคำขอ"]),"st":str(r["สถานะคำขอ"]),"j":str(r["joint"]),
-             "lat":round(float(r["lat_n"]),5),"lon":round(float(r["lon_n"]),5)}
+             "lat":round(float(r["lat_n"]),5),"lon":round(float(r["lon_n"]),5),
+             "done": 1 if is_done else 0}
         if pd.notna(r["kw_num"]): d["kw"] = round(float(r["kw_num"]),1)
         map_data.append(d)
 
-    print(f"✅ Trend {len(trend_data)} months | Lead {len(lead_data)} joints | MW done={mw_done_total}MW | Map {len(map_data)} points")
+    n_done = sum(1 for m in map_data if m["done"])
+    print(f"✅ Trend {len(trend_data)} months | Lead {len(lead_data)} joints | MW done={mw_done_total}MW | Map {len(map_data)} points (เชื่อมต่อ {n_done} / ค้าง {len(map_data)-n_done})")
 
     return {
         "rows": rows, "details": details, "kpi_summary": kpi_summary,

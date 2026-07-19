@@ -208,6 +208,14 @@ body{font-family:'Sarabun',sans-serif;background:var(--bg);color:var(--text);fon
 
 
 <div class="card">
+  <div class="card-title">🗺 แผนที่ตำแหน่งคำขอ — เชื่อมต่อแล้ว & ยังไม่เชื่อม</div>
+  <div style="font-size:11px;color:#1A5276;margin-bottom:10px;padding:6px 10px;background:#EBF5FB;border-radius:6px;border-left:3px solid #1A6FA8">
+    📍 แสดง <strong id="map-count"></strong> · <span style="color:#145A32;font-weight:600">🟢 เชื่อมต่อแล้ว</span> และงานที่ยังไม่เชื่อม (แยกสีตามสถานะ) · ใช้ปุ่มมุมขวาบนของแผนที่เปิด/ปิดชั้นข้อมูล · คลิกจุดดูรายละเอียด
+  </div>
+  <div id="ppim-map" style="height:460px;border-radius:10px;border:1.5px solid #AED6F1;overflow:hidden"></div>
+  <div class="legend-row" id="map-legend" style="margin-top:10px"></div>
+</div>
+<div class="card">
   <div class="card-title">📈 อัตราสำเร็จ (Conversion Rate) — แยกตามจุดร่วมงาน × ปี</div>
   <div class="filters">
     <label>มุมมอง:</label>
@@ -259,13 +267,6 @@ body{font-family:'Sarabun',sans-serif;background:var(--bg);color:var(--text);fon
   <div class="chart-wrap"><canvas id="chart-mw"></canvas></div>
 </div>
 
-<div class="card">
-  <div class="card-title">🗺 แผนที่ตำแหน่งคำขอที่ยังค้างอยู่</div>
-  <div style="font-size:11px;color:#1A5276;margin-bottom:10px;padding:6px 10px;background:#EBF5FB;border-radius:6px;border-left:3px solid #1A6FA8">
-    📍 แสดงงานที่ยังไม่เสร็จ (ไม่รวมเชื่อมต่อแล้วและยกเลิก) จำนวน <strong id="map-count"></strong> จุด · คลิกจุดเพื่อดูรายละเอียด
-  </div>
-  <div id="ppim-map" style="height:420px;border-radius:10px;border:1.5px solid #AED6F1;overflow:hidden"></div>
-</div>
 <div class="card">
   <div class="card-title">📊 ภาพรวม 19 จุดร่วมงาน × ทุกสถานะ</div>
   <div class="filters"><label>สถานะ:</label><select id="f-st-ov" onchange="renderOverview()"><option value="all">ทุกสถานะ</option></select></div>
@@ -877,16 +878,42 @@ function renderMW(){
 }
 
 function renderMap(){
-  document.getElementById("map-count").textContent=MAP_DATA.length+" รายการ";
+  const nDone=MAP_DATA.filter(p=>p.done).length;
+  const nPend=MAP_DATA.length-nDone;
+  document.getElementById("map-count").textContent=`${MAP_DATA.length} จุด (🟢 เชื่อมต่อแล้ว ${nDone} · ⏳ ยังไม่เชื่อม ${nPend})`;
   if(mapInst){mapInst.remove();mapInst=null;}
   mapInst=L.map("ppim-map").setView([18.5,99.0],8);
   L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",{attribution:"© OpenStreetMap",maxZoom:17}).addTo(mapInst);
-  const colors={"รอตรวจสอบคำขอ":"#C77DFF","รอตรวจสอบระบบผลิต":"#1ABC9C","รอชำระเงิน":"#F39C12","รออนุมัติเชื่อมต่อ/รับพิจารณา":"#E67E22","รอดำเนินการหลังอนุมัติเชื่อมต่อ / รับพิจารณา":"#5DADE2","รอผู้ยื่นคำขอส่งเอกสารแก้ไข":"#E74C3C","รอทดสอบเชื่อมต่อ":"#2ECC71","รออนุมัติแจ้งวันเริ่มเชื่อมต่อ":"#1A6FA8","รอแก้ไขเอกสารหลังอนุมัติเชื่อมต่อ / รับพิจารณา":"#A569BD"};
+
+  const colors={"รอตรวจสอบคำขอ":"#C77DFF","รอตรวจสอบระบบผลิต":"#1ABC9C","รอชำระเงิน":"#F39C12","รออนุมัติเชื่อมต่อ/รับพิจารณา":"#E67E22","รอดำเนินการหลังอนุมัติเชื่อมต่อ / รับพิจารณา":"#5DADE2","รอผู้ยื่นคำขอส่งเอกสารแก้ไข":"#E74C3C","รอทดสอบเชื่อมต่อ":"#2ECC71","รออนุมัติแจ้งวันเริ่มเชื่อมต่อ":"#1A6FA8","รอแก้ไขเอกสารหลังอนุมัติเชื่อมต่อ / รับพิจารณา":"#A569BD","รออนุมัติเชื่อมต่อ (200 kW ขึ้นไป)":"#8B4513"};
+  const DONE_COLOR="#145A32"; // เขียวเข้ม
+
+  // สร้าง 2 Layer group
+  const doneLayer=L.layerGroup();
+  const pendLayer=L.layerGroup();
+
   MAP_DATA.forEach(p=>{
-    const col=colors[p.st]||"#888";
-    const marker=L.circleMarker([p.lat,p.lon],{radius:5,fillColor:col,color:"#fff",weight:1,opacity:.9,fillOpacity:.8}).addTo(mapInst);
-    marker.bindPopup(`<b>${p.id}</b><br>${p.st}<br>${p.j}${p.kw?" | "+p.kw+" kW":""}`);
+    const col = p.done ? DONE_COLOR : (colors[p.st]||"#888");
+    const marker=L.circleMarker([p.lat,p.lon],{radius:p.done?4:5,fillColor:col,color:"#fff",weight:1,opacity:.9,fillOpacity:p.done?.7:.85});
+    marker.bindPopup(`<b>${p.id}</b><br>${p.done?"🟢 ":""}${p.st}<br>${p.j}${p.kw?" | "+p.kw+" kW":""}`);
+    marker.addTo(p.done?doneLayer:pendLayer);
   });
+
+  pendLayer.addTo(mapInst);  // เปิดชั้น "ยังไม่เชื่อม" เป็นค่าเริ่มต้น
+  doneLayer.addTo(mapInst);
+
+  L.control.layers(null,{
+    "🟢 เชื่อมต่อแล้ว ("+nDone+")": doneLayer,
+    "⏳ ยังไม่เชื่อม ("+nPend+")": pendLayer
+  },{collapsed:false}).addTo(mapInst);
+
+  // Legend รายสถานะย่อย
+  const usedStatuses=[...new Set(MAP_DATA.filter(p=>!p.done).map(p=>p.st))];
+  let leg=`<div class="legend-item"><div class="legend-dot" style="background:${DONE_COLOR}"></div>เชื่อมต่อเรียบร้อยแล้ว</div>`;
+  usedStatuses.forEach(s=>{
+    leg+=`<div class="legend-item"><div class="legend-dot" style="background:${colors[s]||"#888"}"></div>${s}</div>`;
+  });
+  document.getElementById("map-legend").innerHTML=leg;
 }
 
 function renderAll(){renderConversion();renderTrend();renderLeadTime();renderMW();renderMap();renderMetrics();renderOverview();renderChart();renderMonthly();renderDetail(1);renderKPIChart();render2024Started();}
