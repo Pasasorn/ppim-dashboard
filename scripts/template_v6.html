@@ -5,6 +5,8 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>PPIM - ข้อมูลการเชื่อมต่อ กฟน.1</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css"/>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap');
 *{box-sizing:border-box;margin:0;padding:0}
@@ -204,6 +206,66 @@ body{font-family:'Sarabun',sans-serif;background:var(--bg);color:var(--text);fon
   <div class="det-wrap" style="margin-top:14px" id="started2024-table"></div>
 </div>
 
+
+<div class="card">
+  <div class="card-title">📈 อัตราสำเร็จ (Conversion Rate) — แยกตามจุดร่วมงาน × ปี</div>
+  <div class="filters">
+    <label>มุมมอง:</label>
+    <select id="f-conv-mode" onchange="renderConversion()">
+      <option value="bar">กราฟแท่ง</option>
+      <option value="table">ตารางละเอียด</option>
+    </select>
+    <label>แสดง:</label>
+    <select id="f-conv-metric" onchange="renderConversion()">
+      <option value="pct">% เชื่อมต่อสำเร็จ</option>
+      <option value="cpct">% ยกเลิก</option>
+    </select>
+  </div>
+  <div id="conv-summary" style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px"></div>
+  <div class="chart-wrap" id="conv-chart-wrap"><canvas id="chart-conv"></canvas></div>
+  <div class="det-wrap" id="conv-table" style="margin-top:14px;display:none"></div>
+</div>
+
+<div class="card">
+  <div class="card-title">📊 แนวโน้มรายเดือน (Trend) — ยื่น / เชื่อมต่อ / ยกเลิก</div>
+  <div class="filters">
+    <label>แสดง:</label>
+    <select id="f-trend-type" onchange="renderTrend()">
+      <option value="line">กราฟเส้น</option>
+      <option value="bar">กราฟแท่ง</option>
+    </select>
+  </div>
+  <div class="chart-wrap" style="height:300px"><canvas id="chart-trend"></canvas></div>
+</div>
+
+<div class="card">
+  <div class="card-title">⏱ ระยะเวลาดำเนินการ (Lead Time) — ยื่นคำขอ → เชื่อมต่อเข้าระบบ</div>
+  <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px" id="lead-summary"></div>
+  <div class="chart-wrap"><canvas id="chart-lead"></canvas></div>
+  <div class="det-wrap" style="margin-top:10px" id="lead-table"></div>
+</div>
+
+<div class="card">
+  <div class="card-title">⚡ กำลังการผลิต (MW Analysis) — รวมทั้ง 19 จุดร่วมงาน</div>
+  <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px" id="mw-summary"></div>
+  <div class="filters">
+    <label>มุมมอง:</label>
+    <select id="f-mw-view" onchange="renderMW()">
+      <option value="status">แยกตามสถานะ</option>
+      <option value="voltage">แยกตามระดับแรงดัน</option>
+      <option value="monthly">แนวโน้มรายเดือน (เชื่อมต่อแล้ว)</option>
+    </select>
+  </div>
+  <div class="chart-wrap"><canvas id="chart-mw"></canvas></div>
+</div>
+
+<div class="card">
+  <div class="card-title">🗺 แผนที่ตำแหน่งคำขอที่ยังค้างอยู่</div>
+  <div style="font-size:11px;color:#1A5276;margin-bottom:10px;padding:6px 10px;background:#EBF5FB;border-radius:6px;border-left:3px solid #1A6FA8">
+    📍 แสดงงานที่ยังไม่เสร็จ (ไม่รวมเชื่อมต่อแล้วและยกเลิก) จำนวน <strong id="map-count"></strong> จุด · คลิกจุดเพื่อดูรายละเอียด
+  </div>
+  <div id="ppim-map" style="height:420px;border-radius:10px;border:1.5px solid #AED6F1;overflow:hidden"></div>
+</div>
 <div class="card">
   <div class="card-title">📊 ภาพรวม 19 จุดร่วมงาน × ทุกสถานะ</div>
   <div class="filters"><label>สถานะ:</label><select id="f-st-ov" onchange="renderOverview()"><option value="all">ทุกสถานะ</option></select></div>
@@ -243,6 +305,15 @@ body{font-family:'Sarabun',sans-serif;background:var(--bg);color:var(--text);fon
 <script>
 const ROWS=%%ROWS%%;
 const ROWS_STARTED=%%ROWS_STARTED%%;
+const CONV_DATA=%%CONV_DATA%%;
+const TREND_DATA=%%TREND_DATA%%;
+const LEAD_DATA=%%LEAD_DATA%%;
+const MW_STATUS=%%MW_STATUS%%;
+const MW_VOLTAGE=%%MW_VOLTAGE%%;
+const MW_MONTHLY=%%MW_MONTHLY%%;
+const MW_DONE_MW=%%MW_DONE_MW%%;
+const MW_PENDING_MW=%%MW_PENDING_MW%%;
+const MAP_DATA=%%MAP_DATA%%;
 const DETAILS=%%DETAILS%%;
 const KPI_SUMMARY=%%KPI_SUMMARY%%;
 const JOINTS=["กฟจ.พะเยา","กฟจ.ลำปาง","กฟจ.ลำพูน","กฟจ.เชียงราย","กฟจ.เชียงใหม่","กฟจ.เชียงใหม่ 2","กฟจ.แม่ฮ่องสอน","กฟส.เกาะคา","กฟส.จอมทอง","กฟส.ฝาง","กฟส.พาน","กฟส.สันกำแพง","กฟส.สันทราย","กฟส.สันป่าตอง","กฟส.หางดง","กฟส.เทิง","กฟส.แม่ริม","กฟส.แม่สาย","กฟน.1"];
@@ -638,7 +709,187 @@ function render2024Started(){
   });
 }
 
-function renderAll(){renderMetrics();renderOverview();renderChart();renderMonthly();renderDetail(1);renderKPIChart();render2024Started();}
+
+let convChartInst=null;
+function renderConversion(){
+  const mode=document.getElementById("f-conv-mode").value;
+  const metric=document.getElementById("f-conv-metric").value;
+  const isPct=metric==="pct";
+  const YEARS=[2024,2025,2026];
+  const YEAR_LABELS=["2567","2568","2569 (ยังไม่จบ)"];
+  const COLORS=["#1A6FA8","#2E86C1","#AED6F1"];
+
+  const overallPct=YEARS.map(yr=>{
+    const tot=CONV_DATA.reduce((a,r)=>a+(r["total_"+yr]||0),0);
+    const val=CONV_DATA.reduce((a,r)=>a+(r[(isPct?"done_":"cancel_")+yr]||0),0);
+    return tot?Math.round(val/tot*1000)/10:0;
+  });
+  document.getElementById("conv-summary").innerHTML=YEARS.map((yr,i)=>`
+    <div class="mc">
+      <div class="mc-lbl">ปี ${YEAR_LABELS[i]}</div>
+      <div class="mc-val" style="color:${isPct?(overallPct[i]>=50?"#1E8449":overallPct[i]>=35?"#B7950B":"#C0392B"):"#C0392B"}">${overallPct[i]}%</div>
+      <div class="mc-sub">${isPct?"เชื่อมต่อสำเร็จ":"ยกเลิก"} จาก 19 จุด</div>
+    </div>`).join("");
+
+  if(mode==="table"){
+    document.getElementById("conv-chart-wrap").style.display="none";
+    document.getElementById("conv-table").style.display="block";
+    let h="<table class='mo-tbl'><thead><tr><th class='tl' style='min-width:130px'>จุดร่วมงาน</th>";
+    YEARS.forEach((yr,i)=>h+=`<th>ปี ${YEAR_LABELS[i]}<br><span style='font-weight:400;font-size:10px'>%สำเร็จ | %ยกเลิก | รวม</span></th>`);
+    h+="</tr></thead><tbody>";
+    CONV_DATA.forEach(r=>{
+      h+=`<tr><td class='tl' style='font-weight:600'>${r.j}</td>`;
+      YEARS.forEach(yr=>{
+        const pct=r["pct_"+yr]; const cpct=r["cpct_"+yr]; const tot=r["total_"+yr];
+        const col=pct>=60?"#1E8449":pct>=40?"#B7950B":"#C0392B";
+        h+=`<td><span style="color:${col};font-weight:700">${pct}%</span> | <span style="color:#C0392B">${cpct}%</span> | <span class='z'>${tot}</span></td>`;
+      });
+      h+="</tr>";
+    });
+    // Total row
+    h+="<tr style='background:#D6EAF8;font-weight:700'><td class='tl'>รวมทุกจุด</td>";
+    YEARS.forEach(yr=>{
+      const tot=CONV_DATA.reduce((a,r)=>a+(r["total_"+yr]||0),0);
+      const done=CONV_DATA.reduce((a,r)=>a+(r["done_"+yr]||0),0);
+      const cancel=CONV_DATA.reduce((a,r)=>a+(r["cancel_"+yr]||0),0);
+      const pct=tot?Math.round(done/tot*1000)/10:0;
+      const cpct=tot?Math.round(cancel/tot*1000)/10:0;
+      const col=pct>=50?"#1E8449":"#C0392B";
+      h+=`<td><span style="color:${col}">${pct}%</span> | <span style="color:#C0392B">${cpct}%</span> | ${tot}</td>`;
+    });
+    h+="</tr></tbody></table>";
+    document.getElementById("conv-table").innerHTML=h;
+    return;
+  }
+  document.getElementById("conv-chart-wrap").style.display="block";
+  document.getElementById("conv-table").style.display="none";
+  if(convChartInst){convChartInst.destroy();convChartInst=null;}
+  const datasets=YEARS.map((yr,i)=>({
+    label:"ปี "+YEAR_LABELS[i],
+    data:CONV_DATA.map(r=>r[(isPct?"pct_":"cpct_")+yr]),
+    backgroundColor:COLORS[i]+"CC",borderRadius:3
+  }));
+  convChartInst=new Chart(document.getElementById("chart-conv"),{
+    type:"bar",
+    data:{labels:CONV_DATA.map(r=>r.j),datasets},
+    options:{
+      responsive:true,maintainAspectRatio:false,
+      plugins:{
+        legend:{display:true,position:"top",labels:{color:"#2C3E50",font:{size:11},boxWidth:12}},
+        tooltip:{callbacks:{label:ctx=>`${ctx.dataset.label}: ${ctx.raw}%`}}
+      },
+      scales:{
+        x:{ticks:{autoSkip:false,maxRotation:45,font:{size:11},color:"#2C3E50"}},
+        y:{beginAtZero:true,max:100,ticks:{color:"#2C3E50",font:{size:11},callback:v=>v+"%"},
+           grid:{color:"rgba(26,111,168,.1)"}}
+      }
+    }
+  });
+}
+
+let trendChartInst=null,leadChartInst=null,mwChartInst=null,mapInst=null;
+
+function renderTrend(){
+  const type=document.getElementById("f-trend-type").value;
+  if(trendChartInst){trendChartInst.destroy();trendChartInst=null;}
+  trendChartInst=new Chart(document.getElementById("chart-trend"),{
+    type:type==="line"?"line":"bar",
+    data:{
+      labels:TREND_DATA.map(r=>r.m),
+      datasets:[
+        {label:"ยื่นทั้งหมด",data:TREND_DATA.map(r=>r.total),borderColor:"#1A6FA8",backgroundColor:"#1A6FA8"+(type==="bar"?"99":"22"),tension:.3,fill:type==="line",pointRadius:2},
+        {label:"เชื่อมต่อแล้ว",data:TREND_DATA.map(r=>r.done),borderColor:"#1E8449",backgroundColor:"#1E8449"+(type==="bar"?"99":"22"),tension:.3,fill:false,pointRadius:2},
+        {label:"ยกเลิก",data:TREND_DATA.map(r=>r.cancel),borderColor:"#C0392B",backgroundColor:"#C0392B"+(type==="bar"?"99":"22"),tension:.3,fill:false,pointRadius:2},
+        {label:"คงค้าง",data:TREND_DATA.map(r=>r.pending),borderColor:"#B7950B",backgroundColor:"#B7950B"+(type==="bar"?"99":"22"),tension:.3,fill:false,pointRadius:2}
+      ]
+    },
+    options:{responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:true,position:"top",labels:{color:"#2C3E50",font:{size:11},boxWidth:12}}},
+      scales:{
+        x:{ticks:{autoSkip:true,maxTicksLimit:15,maxRotation:45,font:{size:10},color:"#2C3E50"}},
+        y:{beginAtZero:true,ticks:{color:"#2C3E50",font:{size:11}},grid:{color:"rgba(26,111,168,.1)"}}
+      }
+    }
+  });
+}
+
+function renderLeadTime(){
+  const totalAvg=LEAD_DATA.reduce((a,r)=>a+r.avg*r.n,0)/LEAD_DATA.reduce((a,r)=>a+r.n,0);
+  document.getElementById("lead-summary").innerHTML=`
+    <div class="mc"><div class="mc-lbl">ค่าเฉลี่ยรวม</div><div class="mc-val" style="color:#1A6FA8">${Math.round(totalAvg)} วัน</div><div class="mc-sub">ยื่น → เชื่อมต่อ</div></div>
+    <div class="mc"><div class="mc-lbl">Median รวม</div><div class="mc-val" style="color:#1E8449">${Math.round(LEAD_DATA.reduce((a,r)=>a+r.med*r.n,0)/LEAD_DATA.reduce((a,r)=>a+r.n,0))} วัน</div><div class="mc-sub">ค่ากลาง</div></div>
+    <div class="mc"><div class="mc-lbl">ตัวอย่าง (n)</div><div class="mc-val">${LEAD_DATA.reduce((a,r)=>a+r.n,0)}</div><div class="mc-sub">งานที่เชื่อมต่อสำเร็จ</div></div>`;
+
+  if(leadChartInst){leadChartInst.destroy();leadChartInst=null;}
+  const sorted=[...LEAD_DATA].sort((a,b)=>b.avg-a.avg);
+  leadChartInst=new Chart(document.getElementById("chart-lead"),{
+    type:"bar",
+    data:{labels:sorted.map(r=>r.j),
+      datasets:[
+        {label:"ค่าเฉลี่ย (วัน)",data:sorted.map(r=>r.avg),backgroundColor:"#2E86C1CC",borderRadius:3},
+        {label:"Median (วัน)",data:sorted.map(r=>r.med),backgroundColor:"#1E8449CC",borderRadius:3}
+      ]
+    },
+    options:{responsive:true,maintainAspectRatio:false,indexAxis:"y",
+      plugins:{legend:{display:true,position:"top",labels:{color:"#2C3E50",font:{size:11},boxWidth:12}}},
+      scales:{
+        x:{beginAtZero:true,ticks:{color:"#2C3E50",font:{size:11}},grid:{color:"rgba(26,111,168,.1)"}},
+        y:{ticks:{color:"#2C3E50",font:{size:11}}}
+      }
+    }
+  });
+
+  let h="<table class='mo-tbl'><thead><tr><th class='tl'>จุดร่วมงาน</th><th>ค่าเฉลี่ย (วัน)</th><th>Median (วัน)</th><th>จำนวน</th></tr></thead><tbody>";
+  sorted.forEach(r=>{
+    const col=r.avg>150?"#C0392B":r.avg>90?"#B7950B":"#1E8449";
+    h+=`<tr><td class='tl' style='font-weight:600'>${r.j}</td><td style='color:${col};font-weight:700'>${r.avg}</td><td>${r.med}</td><td class='z'>${r.n}</td></tr>`;
+  });
+  h+="</tbody></table>";
+  document.getElementById("lead-table").innerHTML=h;
+}
+
+function renderMW(){
+  const view=document.getElementById("f-mw-view").value;
+  document.getElementById("mw-summary").innerHTML=`
+    <div class="mc green"><div class="mc-lbl">⚡ เชื่อมต่อแล้ว</div><div class="mc-val">${MW_DONE_MW} MW</div><div class="mc-sub">Online แล้ว</div></div>
+    <div class="mc amber"><div class="mc-lbl">⏳ รอดำเนินการ</div><div class="mc-val" style="color:#B7950B">${MW_PENDING_MW} MW</div><div class="mc-sub">ยังไม่เสร็จ</div></div>
+    <div class="mc"><div class="mc-lbl">📊 รวมทั้งหมด</div><div class="mc-val">${Math.round((MW_DONE_MW+MW_PENDING_MW)*100)/100} MW</div><div class="mc-sub">ทุกสถานะ</div></div>`;
+  if(mwChartInst){mwChartInst.destroy();mwChartInst=null;}
+  if(view==="status"){
+    const sorted=[...MW_STATUS].sort((a,b)=>b.kw_total-a.kw_total);
+    mwChartInst=new Chart(document.getElementById("chart-mw"),{type:"bar",
+      data:{labels:sorted.map(r=>r.st),
+        datasets:[{label:"kW รวม",data:sorted.map(r=>r.kw_total),backgroundColor:sorted.map(r=>r.st==="เชื่อมต่อเรียบร้อยแล้ว"?"#1E8449CC":r.st==="ยกเลิก"?"#C0392BCC":"#2E86C1CC"),borderRadius:3}]},
+      options:{responsive:true,maintainAspectRatio:false,indexAxis:"y",
+        plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>`${(ctx.raw/1000).toFixed(2)} MW (${ctx.raw.toLocaleString()} kW)`}}},
+        scales:{x:{ticks:{color:"#2C3E50",font:{size:11},callback:v=>(v/1000).toFixed(1)+" MW"},grid:{color:"rgba(26,111,168,.1)"}},y:{ticks:{color:"#2C3E50",font:{size:10}}}}}});
+  } else if(view==="voltage"){
+    mwChartInst=new Chart(document.getElementById("chart-mw"),{type:"doughnut",
+      data:{labels:MW_VOLTAGE.map(r=>r.v),datasets:[{data:MW_VOLTAGE.map(r=>r.kw_total),backgroundColor:["#1A6FA8CC","#2E86C1CC","#5DADE2CC","#AED6F1CC","#154360CC"],borderWidth:2}]},
+      options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:true,position:"right",labels:{color:"#2C3E50",font:{size:11}}},tooltip:{callbacks:{label:ctx=>`${ctx.label}: ${(ctx.raw/1000).toFixed(2)} MW`}}}}});
+  } else {
+    mwChartInst=new Chart(document.getElementById("chart-mw"),{type:"line",
+      data:{labels:MW_MONTHLY.map(r=>r.m),datasets:[{label:"MW เชื่อมต่อสำเร็จสะสมรายเดือน",data:MW_MONTHLY.map(r=>r.kw/1000),borderColor:"#1E8449",backgroundColor:"#1E844922",tension:.3,fill:true,pointRadius:2}]},
+      options:{responsive:true,maintainAspectRatio:false,
+        plugins:{legend:{display:true,labels:{color:"#2C3E50",font:{size:11}}}},
+        scales:{x:{ticks:{autoSkip:true,maxTicksLimit:15,maxRotation:45,font:{size:10},color:"#2C3E50"}},y:{ticks:{color:"#2C3E50",font:{size:11},callback:v=>v.toFixed(1)+" MW"},grid:{color:"rgba(26,111,168,.1)"}}}}});
+  }
+}
+
+function renderMap(){
+  document.getElementById("map-count").textContent=MAP_DATA.length+" รายการ";
+  if(mapInst){mapInst.remove();mapInst=null;}
+  mapInst=L.map("ppim-map").setView([18.5,99.0],8);
+  L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",{attribution:"© OpenStreetMap",maxZoom:17}).addTo(mapInst);
+  const colors={"รอตรวจสอบคำขอ":"#C77DFF","รอตรวจสอบระบบผลิต":"#1ABC9C","รอชำระเงิน":"#F39C12","รออนุมัติเชื่อมต่อ/รับพิจารณา":"#E67E22","รอดำเนินการหลังอนุมัติเชื่อมต่อ / รับพิจารณา":"#5DADE2","รอผู้ยื่นคำขอส่งเอกสารแก้ไข":"#E74C3C","รอทดสอบเชื่อมต่อ":"#2ECC71","รออนุมัติแจ้งวันเริ่มเชื่อมต่อ":"#1A6FA8","รอแก้ไขเอกสารหลังอนุมัติเชื่อมต่อ / รับพิจารณา":"#A569BD"};
+  MAP_DATA.forEach(p=>{
+    const col=colors[p.st]||"#888";
+    const marker=L.circleMarker([p.lat,p.lon],{radius:5,fillColor:col,color:"#fff",weight:1,opacity:.9,fillOpacity:.8}).addTo(mapInst);
+    marker.bindPopup(`<b>${p.id}</b><br>${p.st}<br>${p.j}${p.kw?" | "+p.kw+" kW":""}`);
+  });
+}
+
+function renderAll(){renderConversion();renderTrend();renderLeadTime();renderMW();renderMap();renderMetrics();renderOverview();renderChart();renderMonthly();renderDetail(1);renderKPIChart();render2024Started();}
 init();renderAll();
 </script>
 </body></html>

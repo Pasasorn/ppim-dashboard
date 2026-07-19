@@ -183,10 +183,75 @@ def process(csv_path):
 
     print(f"✅ rows={len(rows)}, records={total}, SLA เกิน 7 วัน={len(sla_ov_list)}, SLA ใน={sla_ok_count}")
     print(f"✅ งานยื่นขอ (ทุกสถานะ): {sum(r['n'] for r in rows_started)} ราย")
+
+    # Conversion Rate แยกตามจุดร่วมงาน × ปี
+    CONV_YEARS = [2024, 2025, 2026]
+    conv_data = []
+    for j in JOINTS_ORDER:
+        row = {"j": j}
+        for yr in CONV_YEARS:
+            sub = df[(df["joint"] == j) & (df["year"] == yr)]
+            tot = len(sub)
+            done = int((sub["สถานะคำขอ"] == "เชื่อมต่อเรียบร้อยแล้ว").sum())
+            cancel = int((sub["สถานะคำขอ"] == "ยกเลิก").sum())
+            row[f"total_{yr}"] = tot
+            row[f"done_{yr}"] = done
+            row[f"cancel_{yr}"] = cancel
+            row[f"pct_{yr}"] = round(done / tot * 100, 1) if tot else 0
+            row[f"cpct_{yr}"] = round(cancel / tot * 100, 1) if tot else 0
+        conv_data.append(row)
+
+    # Trend: รายเดือน ยื่น/เชื่อมต่อ/ยกเลิก/คงค้าง
+    trend_data = []
+    for m, g in df.groupby("month"):
+        trend_data.append({"m": str(m), "total": len(g),
+            "done":    int((g["สถานะคำขอ"] == "เชื่อมต่อเรียบร้อยแล้ว").sum()),
+            "cancel":  int((g["สถานะคำขอ"] == "ยกเลิก").sum()),
+            "pending": int((~g["สถานะคำขอ"].isin(["เชื่อมต่อเรียบร้อยแล้ว","ยกเลิก"])).sum())})
+
+    # Lead Time: ยื่น → เชื่อมต่อเข้าระบบ แยกจุดร่วมงาน
+    done_df = df[df["สถานะคำขอ"] == "เชื่อมต่อเรียบร้อยแล้ว"].copy()
+    done_df["lead"] = (done_df["วันที่เชื่อมต่อเข้าระบบ"] - done_df["วันที่ยื่นคำขอ"]).dt.days
+    done_df = done_df[done_df["lead"].between(0, 730)]
+    lead_agg = done_df.groupby("joint")["lead"].agg(["mean","median","count"]).round(1).reset_index()
+    lead_agg.columns = ["j","avg","med","n"]
+    lead_data = lead_agg.to_dict(orient="records")
+
+    # MW Analysis
+    df["kw_num"] = pd.to_numeric(df["กำลังการผลิตที่ขอ (kW)"], errors="coerce")
+    mw_status = df.groupby("สถานะคำขอ")["kw_num"].sum().round(1).reset_index()
+    mw_status.columns = ["st","kw_total"]
+    mw_voltage = df.groupby("ระดับแรงดันมิเตอร์")["kw_num"].agg(kw_total="sum", n="count").round(1).reset_index()
+    mw_voltage.columns = ["v","kw_total","n"]
+    mw_monthly = df[df["สถานะคำขอ"]=="เชื่อมต่อเรียบร้อยแล้ว"].groupby("month")["kw_num"].sum().round(1).reset_index()
+    mw_monthly.columns = ["m","kw"]
+    mw_done_total    = round(float(df[df["สถานะคำขอ"]=="เชื่อมต่อเรียบร้อยแล้ว"]["kw_num"].sum() / 1000), 2)
+    mw_pending_total = round(float(df[~df["สถานะคำขอ"].isin(["เชื่อมต่อเรียบร้อยแล้ว","ยกเลิก"])]["kw_num"].sum() / 1000), 2)
+
+    # Map: lat/lon งานที่ยังค้าง (กรองเฉพาะภาคเหนือ)
+    df["lat_n"] = pd.to_numeric(df["ละติจูด"], errors="coerce")
+    df["lon_n"] = pd.to_numeric(df["ลองจิจูด"], errors="coerce")
+    pending_map = df[~df["สถานะคำขอ"].isin(["เชื่อมต่อเรียบร้อยแล้ว","ยกเลิก"])].copy()
+    pending_map = pending_map[(pending_map["lat_n"].between(17,21)) & (pending_map["lon_n"].between(97,106))]
+    map_data = []
+    for _, r in pending_map.iterrows():
+        d = {"id":str(r["เลขคำขอ"]),"st":str(r["สถานะคำขอ"]),"j":str(r["joint"]),
+             "lat":round(float(r["lat_n"]),5),"lon":round(float(r["lon_n"]),5)}
+        if pd.notna(r["kw_num"]): d["kw"] = round(float(r["kw_num"]),1)
+        map_data.append(d)
+
+    print(f"✅ Trend {len(trend_data)} months | Lead {len(lead_data)} joints | MW done={mw_done_total}MW | Map {len(map_data)} points")
+
     return {
         "rows": rows, "details": details, "kpi_summary": kpi_summary,
         "sla_ov_list": sla_ov_list, "sla_ok_count": sla_ok_count,
-        "rows_started": rows_started,
+        "rows_started": rows_started, "conv_data": conv_data,
+        "trend_data": trend_data, "lead_data": lead_data,
+        "mw_status": mw_status.to_dict(orient="records"),
+        "mw_voltage": mw_voltage.to_dict(orient="records"),
+        "mw_monthly": mw_monthly.to_dict(orient="records"),
+        "mw_done_total": mw_done_total, "mw_pending_total": mw_pending_total,
+        "map_data": map_data,
         "file_date": file_date, "csv_name": csv_path.name, "today": today, "total": total
     }
 
@@ -215,6 +280,13 @@ def build_html(data):
     details_js     = json.dumps(data["details"],     ensure_ascii=False, separators=(",",":"))
     kpi_summary_js = json.dumps(data["kpi_summary"],  ensure_ascii=False, separators=(",",":"))
     rows_started_js = json.dumps(data["rows_started"], ensure_ascii=False, separators=(",",":"))
+    conv_data_js    = json.dumps(data["conv_data"],    ensure_ascii=False, separators=(",",":"))
+    trend_data_js   = json.dumps(data["trend_data"],   ensure_ascii=False, separators=(",",":"))
+    lead_data_js    = json.dumps(data["lead_data"],    ensure_ascii=False, separators=(",",":"))
+    mw_status_js    = json.dumps(data["mw_status"],    ensure_ascii=False, separators=(",",":"))
+    mw_voltage_js   = json.dumps(data["mw_voltage"],   ensure_ascii=False, separators=(",",":"))
+    mw_monthly_js   = json.dumps(data["mw_monthly"],   ensure_ascii=False, separators=(",",":"))
+    map_data_js     = json.dumps(data["map_data"],     ensure_ascii=False, separators=(",",":"))
 
     sla_rows  = build_sla_rows(data["sla_ov_list"])
     sla_badge = (f'<span class="sla-badge">เกิน SLA (7วัน) {len(data["sla_ov_list"])} ราย!</span>'
@@ -228,6 +300,15 @@ def build_html(data):
         .replace("%%DETAILS%%",     details_js)
         .replace("%%KPI_SUMMARY%%", kpi_summary_js)
         .replace("%%ROWS_STARTED%%", rows_started_js)
+        .replace("%%CONV_DATA%%",    conv_data_js)
+        .replace("%%TREND_DATA%%",   trend_data_js)
+        .replace("%%LEAD_DATA%%",    lead_data_js)
+        .replace("%%MW_STATUS%%",    mw_status_js)
+        .replace("%%MW_VOLTAGE%%",   mw_voltage_js)
+        .replace("%%MW_MONTHLY%%",   mw_monthly_js)
+        .replace("%%MW_DONE_MW%%",   str(data["mw_done_total"]))
+        .replace("%%MW_PENDING_MW%%",str(data["mw_pending_total"]))
+        .replace("%%MAP_DATA%%",     map_data_js)
         .replace("%%TOTAL%%",       str(data["total"]))
         .replace("%%FILE_DATE%%",   data["file_date"])
         .replace("%%CSV_NAME%%",    data["csv_name"])
