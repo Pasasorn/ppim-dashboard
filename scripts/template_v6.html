@@ -916,7 +916,21 @@ function renderMap(){
   document.getElementById("map-legend").innerHTML=leg;
 }
 
-function renderAll(){renderConversion();renderTrend();renderLeadTime();renderMW();renderMap();renderMetrics();renderOverview();renderChart();renderMonthly();renderDetail(1);renderKPIChart();render2024Started();}
+function renderAll(){
+  const safe=(fn,name)=>{try{fn();}catch(e){console.error("Error in "+name+":",e);}};
+  safe(renderConversion,"renderConversion");
+  safe(renderTrend,"renderTrend");
+  safe(renderLeadTime,"renderLeadTime");
+  safe(renderMW,"renderMW");
+  safe(renderMap,"renderMap");
+  safe(renderMetrics,"renderMetrics");
+  safe(renderOverview,"renderOverview");
+  safe(renderChart,"renderChart");
+  safe(renderMonthly,"renderMonthly");
+  safe(()=>renderDetail(1),"renderDetail");
+  safe(renderKPIChart,"renderKPIChart");
+  safe(render2024Started,"render2024Started");
+}
 init();renderAll();
 </script>
 </body></html>
