@@ -77,8 +77,19 @@ def process(csv_path):
     print(f"📂 Processing: {csv_path.name}")
     df = pd.read_csv(csv_path, sep="|", encoding="utf-8")
     today = datetime.now().strftime("%Y-%m-%d")
-    today_ts = pd.Timestamp(today)
-    file_date = datetime.fromtimestamp(csv_path.stat().st_mtime).strftime("%d %B %Y")
+
+    # วันอ้างอิง SLA = วันที่ของข้อมูล ดึงจากชื่อไฟล์ ppim_report_YYYYMMDD.csv
+    # (ไม่ใช้วันรันจริง เพราะข้อมูลสะท้อนสถานะ ณ วันที่ export)
+    import re as _re
+    m_date = _re.search(r"(\d{8})", csv_path.name)
+    if m_date:
+        data_ts = pd.Timestamp(datetime.strptime(m_date.group(1), "%Y%m%d"))
+        file_date = data_ts.strftime("%d %B %Y")
+    else:
+        data_ts = pd.Timestamp(today)
+        file_date = datetime.fromtimestamp(csv_path.stat().st_mtime).strftime("%d %B %Y")
+    today_ts = data_ts  # ใช้วันที่ข้อมูลเป็นฐานคำนวณ SLA
+    print(f"📅 วันอ้างอิง SLA (จากข้อมูล): {data_ts.date()}")
 
     for col in ["วันที่ยื่นคำขอ","วันที่ยื่นแก้ไขคำขอ","วันที่ชำระเงิน",
                 "วันที่อนุมัติเชื่อมต่อ","วันที่เชื่อมต่อเข้าระบบ"]:
@@ -210,14 +221,6 @@ def process(csv_path):
             "cancel":  int((g["สถานะคำขอ"] == "ยกเลิก").sum()),
             "pending": int((~g["สถานะคำขอ"].isin(["เชื่อมต่อเรียบร้อยแล้ว","ยกเลิก"])).sum())})
 
-    # Lead Time: ยื่น → เชื่อมต่อเข้าระบบ แยกจุดร่วมงาน
-    done_df = df[df["สถานะคำขอ"] == "เชื่อมต่อเรียบร้อยแล้ว"].copy()
-    done_df["lead"] = (done_df["วันที่เชื่อมต่อเข้าระบบ"] - done_df["วันที่ยื่นคำขอ"]).dt.days
-    done_df = done_df[done_df["lead"].between(0, 730)]
-    lead_agg = done_df.groupby("joint")["lead"].agg(["mean","median","count"]).round(1).reset_index()
-    lead_agg.columns = ["j","avg","med","n"]
-    lead_data = lead_agg.to_dict(orient="records")
-
     # MW Analysis
     df["kw_num"] = pd.to_numeric(df["กำลังการผลิตที่ขอ (kW)"], errors="coerce")
     mw_status = df.groupby("สถานะคำขอ")["kw_num"].sum().round(1).reset_index()
@@ -244,18 +247,68 @@ def process(csv_path):
         map_data.append(d)
 
     n_done = sum(1 for m in map_data if m["done"])
-    print(f"✅ Trend {len(trend_data)} months | Lead {len(lead_data)} joints | MW done={mw_done_total}MW | Map {len(map_data)} points (เชื่อมต่อ {n_done} / ค้าง {len(map_data)-n_done})")
+    print(f"✅ Trend {len(trend_data)} months | MW done={mw_done_total}MW | Map {len(map_data)} points (เชื่อมต่อ {n_done} / ค้าง {len(map_data)-n_done})")
+
+    # ===== ปริมาณงานเข้า (ตามวันยื่นคำขอ) =====
+    import calendar
+    df["intake_year"] = df["วันที่ยื่นคำขอ"].dt.year
+    df["intake_ym"] = df["วันที่ยื่นคำขอ"].dt.to_period("M").astype(str)
+    df_intake = df[df["วันที่ยื่นคำขอ"].notna()].copy()
+
+    # A) ปี 2567-2568 รายเดือน (แยก joint + ALL)
+    intake_monthly = {}
+    for yr in [2024, 2025]:
+        sub = df_intake[df_intake["intake_year"] == yr]
+        intake_monthly[str(yr)] = {"ALL": sub.groupby("intake_ym").size().to_dict()}
+        for j in JOINTS_ORDER:
+            jm = sub[sub["joint"] == j].groupby("intake_ym").size().to_dict()
+            if jm:
+                intake_monthly[str(yr)][j] = jm
+
+    # B) ปี 2569 รายสัปดาห์ (ทุก 7 วันจากต้นปี) แบบสะสม + delta
+    y26 = df_intake[df_intake["intake_year"] == 2026].copy()
+    intake_2026 = {}
+    if len(y26):
+        year_start = pd.Timestamp("2026-01-01")
+        last_dt = y26["วันที่ยื่นคำขอ"].max().normalize()
+        # สร้างขอบสัปดาห์ทุก 7 วัน ตั้งแต่ 1 ม.ค. จนถึงวันล่าสุด
+        week_edges = []
+        cur = year_start
+        while cur <= last_dt:
+            week_edges.append(cur)
+            cur = cur + pd.Timedelta(days=7)
+        TH_M = ["","ม.ค.","ก.พ.","มี.ค.","เม.ย.","พ.ค.","มิ.ย.","ก.ค.","ส.ค.","ก.ย.","ต.ค.","พ.ย.","ธ.ค."]
+        def wlabel(d):
+            return f"{d.day} {TH_M[d.month]}"
+        def buckets(sdf):
+            out = []
+            cumulative = 0
+            for ws in week_edges:
+                we = ws + pd.Timedelta(days=6)
+                n = int(len(sdf[(sdf["วันที่ยื่นคำขอ"]>=ws)&(sdf["วันที่ยื่นคำขอ"]<=we + pd.Timedelta(hours=23,minutes=59,seconds=59))]))
+                cumulative += n
+                out.append({"label": wlabel(ws), "n": cumulative, "delta": n})
+            return out
+        intake_2026["ALL"] = buckets(y26)
+        for j in JOINTS_ORDER:
+            jdf = y26[y26["joint"] == j]
+            if len(jdf):
+                intake_2026[j] = buckets(jdf)
+
+    intake_joints = ["ALL"] + [j for j in JOINTS_ORDER
+                    if any(j in intake_monthly.get(str(y),{}) for y in [2024,2025]) or j in intake_2026]
 
     return {
         "rows": rows, "details": details, "kpi_summary": kpi_summary,
         "sla_ov_list": sla_ov_list, "sla_ok_count": sla_ok_count,
         "rows_started": rows_started, "conv_data": conv_data,
-        "trend_data": trend_data, "lead_data": lead_data,
+        "trend_data": trend_data,
         "mw_status": mw_status.to_dict(orient="records"),
         "mw_voltage": mw_voltage.to_dict(orient="records"),
         "mw_monthly": mw_monthly.to_dict(orient="records"),
         "mw_done_total": mw_done_total, "mw_pending_total": mw_pending_total,
         "map_data": map_data,
+        "intake_monthly": intake_monthly, "intake_2026": intake_2026, "intake_joints": intake_joints,
         "file_date": file_date, "csv_name": csv_path.name, "today": today, "total": total
     }
 
@@ -286,11 +339,13 @@ def build_html(data):
     rows_started_js = json.dumps(data["rows_started"], ensure_ascii=False, separators=(",",":"))
     conv_data_js    = json.dumps(data["conv_data"],    ensure_ascii=False, separators=(",",":"))
     trend_data_js   = json.dumps(data["trend_data"],   ensure_ascii=False, separators=(",",":"))
-    lead_data_js    = json.dumps(data["lead_data"],    ensure_ascii=False, separators=(",",":"))
     mw_status_js    = json.dumps(data["mw_status"],    ensure_ascii=False, separators=(",",":"))
     mw_voltage_js   = json.dumps(data["mw_voltage"],   ensure_ascii=False, separators=(",",":"))
     mw_monthly_js   = json.dumps(data["mw_monthly"],   ensure_ascii=False, separators=(",",":"))
     map_data_js     = json.dumps(data["map_data"],     ensure_ascii=False, separators=(",",":"))
+    intake_monthly_js = json.dumps(data["intake_monthly"], ensure_ascii=False, separators=(",",":"))
+    intake_2026_js    = json.dumps(data["intake_2026"],    ensure_ascii=False, separators=(",",":"))
+    intake_joints_js  = json.dumps(data["intake_joints"],  ensure_ascii=False, separators=(",",":"))
 
     sla_rows  = build_sla_rows(data["sla_ov_list"])
     sla_badge = (f'<span class="sla-badge">เกิน SLA (7วัน) {len(data["sla_ov_list"])} ราย!</span>'
@@ -306,13 +361,15 @@ def build_html(data):
         .replace("%%ROWS_STARTED%%", rows_started_js)
         .replace("%%CONV_DATA%%",    conv_data_js)
         .replace("%%TREND_DATA%%",   trend_data_js)
-        .replace("%%LEAD_DATA%%",    lead_data_js)
         .replace("%%MW_STATUS%%",    mw_status_js)
         .replace("%%MW_VOLTAGE%%",   mw_voltage_js)
         .replace("%%MW_MONTHLY%%",   mw_monthly_js)
         .replace("%%MW_DONE_MW%%",   str(data["mw_done_total"]))
         .replace("%%MW_PENDING_MW%%",str(data["mw_pending_total"]))
         .replace("%%MAP_DATA%%",     map_data_js)
+        .replace("%%INTAKE_MONTHLY%%", intake_monthly_js)
+        .replace("%%INTAKE_2026%%",    intake_2026_js)
+        .replace("%%INTAKE_JOINTS%%",  intake_joints_js)
         .replace("%%TOTAL%%",       str(data["total"]))
         .replace("%%FILE_DATE%%",   data["file_date"])
         .replace("%%CSV_NAME%%",    data["csv_name"])
