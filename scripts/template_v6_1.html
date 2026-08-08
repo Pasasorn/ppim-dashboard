@@ -26,17 +26,46 @@ body{font-family:'Sarabun',sans-serif;background:var(--bg);color:var(--text);fon
 .sb-item.on{background:#fff;color:#154360;font-weight:700;box-shadow:0 2px 8px rgba(0,0,0,.15)}
 .sb-item .ic{font-size:18px;width:22px;text-align:center;flex-shrink:0}
 .content{margin-left:250px;flex:1;min-width:0}
-.hero{position:relative;padding:32px;color:#fff;overflow:hidden;background:linear-gradient(135deg,#0D2137,#154360,#1A6FA8)}
+.hero{position:relative;padding:18px 28px;color:#fff;overflow:hidden;background:linear-gradient(135deg,#0D2137,#154360,#1A6FA8)}
 .hero::before{content:'';position:absolute;inset:0;background:url('assets/header_solar.jpg') center/cover;opacity:.35;z-index:0}
 .hero::after{content:'';position:absolute;inset:0;background:linear-gradient(120deg,rgba(13,33,55,.92),rgba(26,111,168,.55));z-index:1}
 .hero-inner{position:relative;z-index:2;display:flex;align-items:center;gap:20px;flex-wrap:wrap}
-.hero-title h1{font-size:26px;font-weight:700;text-shadow:0 2px 8px rgba(0,0,0,.3)}
+.hero-title h1{font-size:22px;font-weight:700;text-shadow:0 2px 8px rgba(0,0,0,.3)}
 .hero-title p{font-size:14px;color:rgba(255,255,255,.9);margin-top:4px}
 .hero-stats{margin-left:auto;display:flex;gap:12px;flex-wrap:wrap}
-.hero-stat{background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.3);border-radius:12px;padding:12px 20px;text-align:center;min-width:110px}
-.hero-stat strong{display:block;font-size:26px;font-weight:700;color:#fff}
+.hero-stat{background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.3);border-radius:12px;padding:8px 16px;text-align:center;min-width:100px}
+.hero-stat strong{display:block;font-size:22px;font-weight:700;color:#fff}
 .hero-stat span{font-size:12px;color:rgba(255,255,255,.85)}
 
+
+/* ===== Responsive: บีบให้พอดีเมื่อกว้างจำกัด (เช่น embed ใน Google Sites) ===== */
+@media (max-width:1200px){
+  .sidebar{width:64px}
+  .content{margin-left:64px}
+  .sb-brand{padding:14px 8px;justify-content:center}
+  .sb-brand-txt{display:none}
+  .sb-item{justify-content:center;padding:12px 6px;font-size:0;gap:0}
+  .sb-item .ic{font-size:20px;width:auto}
+  .sb-item:hover::after{content:attr(data-label);position:absolute;left:70px;background:#0D2137;color:#fff;font-size:12px;padding:5px 10px;border-radius:6px;white-space:nowrap;z-index:200}
+  .sb-item{position:relative}
+  .hero{padding:14px 16px}
+  .hero-title h1{font-size:18px}
+  .hero-title p{font-size:12px}
+  .hero-stat{padding:6px 12px;min-width:80px}
+  .hero-stat strong{font-size:18px}
+  .hero-stat span{font-size:10px}
+  .sla-wrap,.ynav{margin:12px 14px 0}
+  .main{margin:0 14px;padding:10px 0 20px}
+  .metrics{gap:8px}
+  .card{padding:12px}
+}
+@media (max-width:820px){
+  .sidebar{width:56px}
+  .content{margin-left:56px}
+  .hero-inner{gap:10px}
+  .hero-stats{width:100%;margin-left:0}
+  .card-title{font-size:13px}
+}
 .hdr{display:none}
 .hdr-inner{max-width:1300px;margin:0 auto;padding:18px 24px;display:flex;align-items:center;gap:16px;flex-wrap:wrap}
 .hdr-icon{width:50px;height:50px;background:linear-gradient(135deg,#1A5276,#2E86C1);border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:24px;box-shadow:0 2px 12px rgba(26,111,168,.3)}
@@ -57,6 +86,8 @@ body{font-family:'Sarabun',sans-serif;background:var(--bg);color:var(--text);fon
 @keyframes pulse{0%,100%{box-shadow:0 0 0 0 rgba(231,76,60,.6)}50%{box-shadow:0 0 0 8px rgba(231,76,60,0)}}
 @keyframes kpi-pulse{0%,100%{box-shadow:0 0 0 0 rgba(192,57,43,.7)}50%{box-shadow:0 0 6px 3px rgba(192,57,43,.5)}}
 .sla-table{width:100%;border-collapse:collapse;font-size:13px;margin-top:8px}
+.sla-tbl-wrap{max-height:300px;overflow-y:auto;border-radius:8px}
+.sla-table th{position:sticky;top:0;z-index:2}
 .sla-table th{background:#D6EAF8;color:#1A5276;padding:7px 12px;text-align:left;border-bottom:1px solid rgba(26,111,168,.3)}
 .sla-table td{padding:7px 12px;border-bottom:1px solid rgba(255,255,255,.06);color:var(--text)}
 .sla-ok{color:#1E8449;font-size:11px;margin-top:8px;font-weight:600}
@@ -68,19 +99,19 @@ body{font-family:'Sarabun',sans-serif;background:var(--bg);color:var(--text);fon
 .ytabs{display:flex;gap:6px}
 .ytab{padding:10px 24px;border-radius:10px 10px 0 0;border:1.5px solid #AED6F1;border-bottom:none;font-size:13px;font-weight:600;cursor:pointer;color:#1A5276;background:#FFFFFF;transition:.2s;position:relative;bottom:-2px}
 .ytab:hover{background:#D6EAF8;color:#1A5276}.ytab.on{background:linear-gradient(135deg,#1A5276,#2E86C1);color:#FFFFFF;border-color:#1A6FA8;font-weight:700}
-.main{margin:0 28px;padding:20px 0 50px;border-top:2px solid #AED6F1}
+.main{margin:0 28px;padding:14px 0 24px;border-top:2px solid #AED6F1}
 .metrics{display:grid;grid-template-columns:repeat(auto-fit,minmax(145px,1fr));gap:10px;margin-bottom:20px}
 .mc{background:var(--card);border:1.5px solid #AED6F1;border-radius:12px;padding:14px 16px;box-shadow:0 2px 6px rgba(26,82,118,.08)}
 .mc-lbl{font-size:12px;color:#1A5276;letter-spacing:.03em;margin-bottom:5px;font-weight:600}
 .mc-val{font-size:30px;font-weight:700;color:var(--gold2)}.mc-sub{font-size:12px;color:#7F8C8D;margin-top:3px}
 .mc.green .mc-val{color:var(--green)}.mc.red .mc-val{color:var(--red)}.mc.amber .mc-val{color:var(--orange)}.mc.purple .mc-val{color:var(--purple3)}
-.card{background:var(--card);border:1.5px solid #AED6F1;border-radius:14px;padding:18px;margin-bottom:18px;box-shadow:0 2px 8px rgba(26,82,118,.08)}
+.card{background:var(--card);border:1.5px solid #AED6F1;border-radius:14px;padding:14px 16px;margin-bottom:12px;box-shadow:0 2px 8px rgba(26,82,118,.08)}
 .card-title{font-size:15px;font-weight:700;color:#154360;text-transform:uppercase;letter-spacing:.07em;margin-bottom:14px;display:flex;align-items:center;gap:8px}
 .card-title::after{content:'';flex:1;height:1px;background:linear-gradient(90deg,#AED6F1,transparent)}
 .filters{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:14px}
 .filters label{font-size:11px;color:#1A5276;font-weight:600}
 .filters select{font-size:11px;padding:6px 10px;border-radius:8px;border:1.5px solid #AED6F1;color:#1B2631;background:#FFFFFF;cursor:pointer}
-.ov-wrap{overflow-x:auto}
+.ov-wrap{overflow-x:auto;max-height:260px;overflow-y:auto}
 .ov-tbl{border-collapse:collapse;font-size:11px;width:max-content;min-width:100%}
 .ov-tbl th{background:#D6EAF8;padding:7px 10px;border:1px solid #AED6F1;text-align:center;font-weight:700;color:#1A5276;white-space:nowrap;font-size:10px}
 .ov-tbl th.row-h{text-align:left;min-width:140px;position:sticky;left:0;z-index:3;background:#D6EAF8}
@@ -94,7 +125,7 @@ body{font-family:'Sarabun',sans-serif;background:var(--bg);color:var(--text);fon
 .p6{background:rgba(174,182,191,.2);color:#AEB6BF}.p7{background:rgba(230,126,34,.2);color:#E67E22}.p8{background:rgba(192,57,43,.2);color:#E74C3C}
 .p9{background:rgba(26,111,168,.2);color:var(--gold2)}.p10{background:rgba(41,128,185,.2);color:#5DADE2}.p11{background:rgba(142,68,173,.2);color:#A569BD}
 .z{color:var(--text3);font-size:10px}.ov-mark{color:#E74C3C;font-size:10px;font-weight:700}
-.chart-wrap{position:relative;height:260px}
+.chart-wrap{position:relative;height:270px}
 .legend-row{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
 .view-toggle{display:flex;gap:6px;margin-left:auto}
 .vt-btn{padding:5px 14px;border-radius:8px;border:1.5px solid var(--border);font-size:11px;font-weight:600;cursor:pointer;color:var(--text2);background:var(--card2);transition:.15s}
@@ -105,7 +136,7 @@ body{font-family:'Sarabun',sans-serif;background:var(--bg);color:var(--text);fon
 .st-chip.on{opacity:1}
 .st-chip-all{padding:4px 14px;border-radius:14px;border:1.5px solid #1A6FA8;font-size:11px;font-weight:700;cursor:pointer;background:#D6EAF8;color:#1A5276}
 .legend-item{display:flex;align-items:center;gap:4px;font-size:10px;color:var(--text2)}.legend-dot{width:10px;height:10px;border-radius:2px}
-.det-wrap{overflow-x:auto;max-height:420px;overflow-y:auto}
+.det-wrap{overflow-x:auto;max-height:260px;overflow-y:auto}
 .mo-tbl,.det-tbl,.kpi-tbl{border-collapse:collapse;font-size:11px;width:100%}
 .mo-tbl th,.det-tbl th,.kpi-tbl th{background:#D6EAF8;padding:7px 10px;border:1px solid #AED6F1;text-align:left;font-weight:700;color:#1A5276;white-space:nowrap;font-size:10px;position:sticky;top:0;z-index:2}
 .mo-tbl td,.det-tbl td,.kpi-tbl td{padding:5px 8px;border-bottom:1px solid rgba(255,255,255,.05);text-align:center;color:var(--text)}
@@ -153,16 +184,16 @@ body{font-family:'Sarabun',sans-serif;background:var(--bg);color:var(--text);fon
     <div class="sb-brand-txt"><h2>PPIM Dashboard</h2><p>กฟน.1 · ระบบเชื่อมต่อไฟฟ้า</p></div>
   </div>
   <nav class="sb-menu">
-    <div class="sb-item on" data-target="sec-sla"><span class="ic">🔔</span>แจ้งเตือน SLA</div>
-    <div class="sb-item" data-target="sec-kpi"><span class="ic">🎯</span>ค่าเฉลี่ย KPI</div>
-    <div class="sb-item" data-target="sec-map"><span class="ic">🗺</span>แผนที่คำขอ</div>
-    <div class="sb-item" data-target="sec-intake"><span class="ic">📥</span>ปริมาณงานเข้า</div>
-    <div class="sb-item" data-target="sec-parallel"><span class="ic">📌</span>งานยื่นขอขนาน</div>
-    <div class="sb-item" data-target="sec-conv"><span class="ic">📈</span>อัตราสำเร็จ</div>
-    <div class="sb-item" data-target="sec-trend"><span class="ic">📊</span>แนวโน้มรายเดือน</div>
-    <div class="sb-item" data-target="sec-mw"><span class="ic">⚡</span>กำลังการผลิต</div>
-    <div class="sb-item" data-target="sec-overview"><span class="ic">📋</span>ภาพรวม 19 จุด</div>
-    <div class="sb-item" data-target="sec-detail"><span class="ic">🔍</span>รายละเอียดรายคำขอ</div>
+    <div data-label="แจ้งเตือน SLA" class="sb-item on" data-target="sec-sla"><span class="ic">🔔</span>แจ้งเตือน SLA</div>
+    <div data-label="ค่าเฉลี่ย KPI" class="sb-item" data-target="sec-kpi"><span class="ic">🎯</span>ค่าเฉลี่ย KPI</div>
+    <div data-label="แผนที่คำขอ" class="sb-item" data-target="sec-map"><span class="ic">🗺</span>แผนที่คำขอ</div>
+    <div data-label="ปริมาณงานเข้า" class="sb-item" data-target="sec-intake"><span class="ic">📥</span>ปริมาณงานเข้า</div>
+    <div data-label="งานยื่นขอขนาน" class="sb-item" data-target="sec-parallel"><span class="ic">📌</span>งานยื่นขอขนาน</div>
+    <div data-label="อัตราสำเร็จ" class="sb-item" data-target="sec-conv"><span class="ic">📈</span>อัตราสำเร็จ</div>
+    <div data-label="แนวโน้มรายเดือน" class="sb-item" data-target="sec-trend"><span class="ic">📊</span>แนวโน้มรายเดือน</div>
+    <div data-label="กำลังการผลิต" class="sb-item" data-target="sec-mw"><span class="ic">⚡</span>กำลังการผลิต</div>
+    <div data-label="ภาพรวม 19 จุด" class="sb-item" data-target="sec-overview"><span class="ic">📋</span>ภาพรวม 19 จุด</div>
+    <div data-label="รายละเอียดรายคำขอ" class="sb-item" data-target="sec-detail"><span class="ic">🔍</span>รายละเอียดรายคำขอ</div>
   </nav>
 </aside>
 <div class="content">
@@ -177,11 +208,12 @@ body{font-family:'Sarabun',sans-serif;background:var(--bg);color:var(--text);fon
     <div class="hero-stat"><strong id="h-pend" style="color:#FF8C42">—</strong><span>คงค้าง</span></div>
   </div>
 </div></div>
-<div class="update-bar"><div class="update-inner">
+<div class="update-bar"><div class="update-inner" style="align-items:center">
   <span>📁 ไฟล์: <b>%%CSV_NAME%%</b></span>
   <span>📅 ข้อมูล ณ: <b>%%FILE_DATE%%</b></span>
   <span>🔄 ประมวลผล: <b>%%TODAY%%</b></span>
-</div></div>
+<a href="https://pasasorn.github.io/ppim-dashboard/PPIM_Dashboard_v6.html" target="_blank" rel="noopener"
+   style="margin-left:auto;background:#1A6FA8;color:#fff;font-size:11px;font-weight:600;padding:4px 12px;border-radius:20px;text-decoration:none;white-space:nowrap">⛶ เปิดเต็มจอ</a></div></div>
 
 <div class="sla-wrap" id="sec-sla"><div class="sla-box">
   <div class="sla-head">
@@ -200,9 +232,9 @@ body{font-family:'Sarabun',sans-serif;background:var(--bg);color:var(--text);fon
       <div class="lt-item"><div class="lt-dot" style="background:#E74C3C;animation:kpi-pulse 1.5s infinite"></div>เกิน 28 วัน — KPI=1</div>
     </div>
   </div>
-  <table class="sla-table">
+  <div class="sla-tbl-wrap"><table class="sla-table">
     <tr><th>จุดร่วมงาน</th><th>เดือน</th><th>เลขคำขอ</th><th>เริ่มนับ SLA</th><th>นับจาก</th><th>วันทำการที่ผ่าน</th><th>ระดับ</th><th>การดำเนินการ</th></tr>
-    %%SLA_ROWS%%</table>
+    %%SLA_ROWS%%</table></div>
   <div class="sla-ok">✅ อยู่ใน SLA (≤7 วัน): %%SLA_OK%% ราย</div>
 </div></div>
 
@@ -268,7 +300,7 @@ body{font-family:'Sarabun',sans-serif;background:var(--bg);color:var(--text);fon
   <div style="font-size:11px;color:#1A5276;margin-bottom:10px;padding:6px 10px;background:#EBF5FB;border-radius:6px;border-left:3px solid #1A6FA8">
     📍 แสดง <strong id="map-count"></strong> · <span style="color:#145A32;font-weight:600">🟢 เชื่อมต่อแล้ว</span> และงานที่ยังไม่เชื่อม (แยกสีตามสถานะ) · ใช้ปุ่มมุมขวาบนของแผนที่เปิด/ปิดชั้นข้อมูล · คลิกจุดดูรายละเอียด
   </div>
-  <div id="ppim-map" style="height:460px;border-radius:10px;border:1.5px solid #AED6F1;overflow:hidden"></div>
+  <div id="ppim-map" style="height:400px;border-radius:10px;border:1.5px solid #AED6F1;overflow:hidden"></div>
   <div class="legend-row" id="map-legend" style="margin-top:10px"></div>
 </div>
 <div class="card" id="sec-intake">
@@ -331,13 +363,13 @@ body{font-family:'Sarabun',sans-serif;background:var(--bg);color:var(--text);fon
   <div class="filters"><label>สถานะ:</label><select id="f-st-ov" onchange="renderOverview()"><option value="all">ทุกสถานะ</option></select></div>
   <div class="ov-wrap" id="ov-wrap"></div>
 </div>
-<div class="card">
+<div class="card" data-sec="sec-overview">
   <div class="card-title">📈 กราฟภาพรวม — แกน X = 19 จุดร่วมงาน</div>
   <div class="filters"><label>สถานะ:</label><select id="f-st-chart" onchange="renderChart()"><option value="all">ทุกสถานะรวมกัน</option></select></div>
   <div class="chart-wrap"><canvas id="chart-joint"></canvas></div>
   <div class="legend-row" id="chart-legend"></div>
 </div>
-<div class="card">
+<div class="card" data-sec="sec-detail">
   <div class="card-title">📅 รายละเอียดรายเดือน</div>
   <div class="filters">
     <label>จุดร่วมงาน:</label><select id="f-j-mo" onchange="renderMonthly()"><option value="all">ทั้งหมด 19 จุด</option></select>
@@ -1066,27 +1098,33 @@ function renderAll(){
 }
 init();renderAll();
 
-// ===== Sidebar Navigation =====
+// ===== Sidebar Navigation (สลับหน้า — แสดงทีละ Section) =====
 (function(){
   const items=document.querySelectorAll('.sb-item');
-  items.forEach(it=>{
-    it.addEventListener('click',()=>{
-      const target=document.getElementById(it.dataset.target);
-      if(target) target.scrollIntoView({behavior:'smooth',block:'start'});
-      if(it.dataset.target==='sec-map' && window.mapInst){setTimeout(()=>window.mapInst.invalidateSize(),400);}
-    });
-  });
-  // highlight active menu on scroll
-  const sections=[...items].map(it=>({item:it,el:document.getElementById(it.dataset.target)})).filter(s=>s.el);
-  function onScroll(){
-    let cur=sections[0];
-    const y=window.scrollY+140;
-    for(const s of sections){ if(s.el.offsetTop<=y) cur=s; }
-    items.forEach(i=>i.classList.remove('on'));
-    if(cur) cur.item.classList.add('on');
+  const sections=[...items].map(it=>({item:it,id:it.dataset.target,el:document.getElementById(it.dataset.target)})).filter(s=>s.el);
+
+  const allBlocks=[...document.querySelectorAll('.main > .card, .sla-wrap')];
+  function groupOf(el){
+    if(el.id) return el.id;
+    return el.dataset.sec || null;
   }
-  window.addEventListener('scroll',onScroll,{passive:true});
-  onScroll();
+  function showSection(id){
+    allBlocks.forEach(el=>{ el.style.display = (groupOf(el)===id) ? '' : 'none'; });
+    items.forEach(i=>i.classList.toggle('on', i.dataset.target===id));
+    // Leaflet ต้อง refresh ขนาดเมื่อ container เพิ่งถูกแสดง
+    if(id==='sec-map' && window.mapInst){ setTimeout(()=>window.mapInst.invalidateSize(),120); }
+    // Chart.js resize ให้พอดีพื้นที่
+    setTimeout(()=>{ if(window.Chart&&Chart.instances){Object.values(Chart.instances).forEach(c=>{try{c.resize();}catch(e){}});} },140);
+    window.scrollTo({top:0,behavior:'auto'});
+  }
+
+  items.forEach(it=>{
+    it.addEventListener('click',()=>showSection(it.dataset.target));
+  });
+
+  // เริ่มต้นที่ Section แรก
+  if(sections.length) showSection(sections[0].id);
+  window.ppimShowSection=showSection;
 })();
 
 </script>
