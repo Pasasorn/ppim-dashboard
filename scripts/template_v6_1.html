@@ -26,13 +26,15 @@ body{font-family:'Sarabun',sans-serif;background:var(--bg);color:var(--text);fon
 .sb-item.on{background:#fff;color:#154360;font-weight:700;box-shadow:0 2px 8px rgba(0,0,0,.15)}
 .sb-item .ic{font-size:18px;width:22px;text-align:center;flex-shrink:0}
 .content{margin-left:250px;flex:1;min-width:0}
-.hero{position:relative;padding:18px 28px;color:#fff;overflow:hidden;background:linear-gradient(135deg,#0D2137,#154360,#1A6FA8)}
+.hero{position:relative;padding:14px 24px;color:#fff;overflow:hidden;background:linear-gradient(135deg,#0D2137,#154360,#1A6FA8)}
 .hero::before{content:'';position:absolute;inset:0;background:url('assets/header_solar.jpg') center/cover;opacity:.35;z-index:0}
 .hero::after{content:'';position:absolute;inset:0;background:linear-gradient(120deg,rgba(13,33,55,.92),rgba(26,111,168,.55));z-index:1}
-.hero-inner{position:relative;z-index:2;display:flex;align-items:center;gap:20px;flex-wrap:wrap}
-.hero-title h1{font-size:22px;font-weight:700;text-shadow:0 2px 8px rgba(0,0,0,.3)}
-.hero-title p{font-size:14px;color:rgba(255,255,255,.9);margin-top:4px}
-.hero-stats{margin-left:auto;display:flex;gap:12px;flex-wrap:wrap}
+.hero-inner{position:relative;z-index:2;display:flex;align-items:center;gap:18px;flex-wrap:nowrap}
+.hero-title{flex:1 1 auto;min-width:0}
+.hero-title h1{font-size:17px;font-weight:700;line-height:1.45;text-shadow:0 2px 8px rgba(0,0,0,.3)}
+.hero-org{font-weight:600}
+.hero-title p{font-size:12.5px;color:rgba(255,255,255,.88);margin-top:3px;line-height:1.4}
+.hero-stats{margin-left:auto;display:flex;gap:10px;flex-wrap:nowrap;flex-shrink:0}
 .hero-stat{background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.3);border-radius:12px;padding:8px 16px;text-align:center;min-width:100px}
 .hero-stat strong{display:block;font-size:22px;font-weight:700;color:#fff}
 .hero-stat span{font-size:12px;color:rgba(255,255,255,.85)}
@@ -49,8 +51,10 @@ body{font-family:'Sarabun',sans-serif;background:var(--bg);color:var(--text);fon
   .sb-item:hover::after{content:attr(data-label);position:absolute;left:70px;background:#0D2137;color:#fff;font-size:12px;padding:5px 10px;border-radius:6px;white-space:nowrap;z-index:200}
   .sb-item{position:relative}
   .hero{padding:14px 16px}
-  .hero-title h1{font-size:18px}
-  .hero-title p{font-size:12px}
+  .hero-inner{flex-wrap:wrap}
+  .hero-stats{flex-wrap:wrap}
+  .hero-title h1{font-size:14px;line-height:1.4}
+  .hero-title p{font-size:11px}
   .hero-stat{padding:6px 12px;min-width:80px}
   .hero-stat strong{font-size:18px}
   .hero-stat span{font-size:10px}
@@ -199,8 +203,9 @@ body{font-family:'Sarabun',sans-serif;background:var(--bg);color:var(--text);fon
 <div class="content">
 <div class="hero"><div class="hero-inner">
   <div class="hero-title">
-    <h1>PPIM — ข้อมูลการเชื่อมต่อ กฟน.1</h1>
-    <p>การไฟฟ้าส่วนภูมิภาค เขต 1 (ภาคเหนือ)</p>
+    <h1>รายงานสถานะการรับคำร้องขอเชื่อมต่อเครื่องกำเนิดไฟฟ้ากับระบบโครงข่ายไฟฟ้าของ กฟภ. (ติดตั้งใช้เอง ไม่ขายไฟฟ้า) ผ่านระบบ PPIM</h1>
+    <p>แผนกส่งเสริมพลังงานทดแทนและอนุรักษ์พลังงาน · กองวิศวกรรมและวางแผน</p>
+    <p class="hero-org">การไฟฟ้าส่วนภูมิภาค เขต 1 (ภาคเหนือ) จังหวัดเชียงใหม่</p>
   </div>
   <div class="hero-stats">
     <div class="hero-stat"><strong id="h-total">%%TOTAL%%</strong><span id="h-total-label">คำขอทั้งหมด (ทุกปี)</span></div>
